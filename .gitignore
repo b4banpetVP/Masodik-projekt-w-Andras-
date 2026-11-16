@@ -1,0 +1,38 @@
+# Build outputs
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+[Dd]ebugPublic/
+[Rr]eleases/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+artifacts/
+
+# Visual Studio workspace and user state
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.rsuser
+
+# NuGet
+*.nupkg
+**/packages/*
+!**/packages/build/
+
+# Test and coverage outputs
+[Tt]est[Rr]esult*/
+coverage*/
+*.coverage
+*.coveragexml
+
+# Generated tooling files
+*.cache
+*.opendb
+*.VC.db
+*.VC.VC.opendb
