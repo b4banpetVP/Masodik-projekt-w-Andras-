@@ -1,7 +1,61 @@
-﻿using System.Diagnostics.Tracing;
-using System.IO;
-using System.Reflection.Metadata.Ecma335;
+﻿using System.IO;
+using System.Security.Cryptography;
+using System.Text;
 
+// csv struktúra: Felhasználónév;Jelszó
+
+// Titkosítás paraméterei
+const int SaltMeret = 16;
+const int NonceMeret = 12;
+const int TagMeret = 16;
+const int Iteraciok = 600_000;
+
+void EncryptFajlba (string input, string jelszo, string eleresiUt) {
+    byte[] salt     = RandomNumberGenerator.GetBytes(SaltMeret);
+    byte[] nonce    = RandomNumberGenerator.GetBytes(NonceMeret);
+    byte[] key      = Rfc2898DeriveBytes.Pbkdf2(jelszo, salt, Iteraciok, HashAlgorithmName.SHA256, 32);
+
+    byte[] plain        = Encoding.UTF8.GetBytes(input);
+    byte[] ciphertext   = new byte[plain.Length];
+    byte[] tag          = new byte[TagMeret];
+
+    using var aes = new AesGcm(key, TagMeret);
+    aes.Encrypt(nonce, plain, ciphertext, tag);
+
+    using var fs = File.Create(eleresiUt);
+    fs.Write(salt,       0, salt.Length);
+    fs.Write(nonce,      0, nonce.Length);
+    fs.Write(tag,        0, tag.Length);
+    fs.Write(ciphertext, 0, ciphertext.Length);
+}
+
+string DecryptFajlbol(string jelszo, string eleresiUt)
+{
+    byte[] data = File.ReadAllBytes(eleresiUt);
+    int headerSize = SaltMeret + NonceMeret + TagMeret;
+    if (data.Length < headerSize)
+    {
+        throw new InvalidDataException("The encrypted file is too short.");
+    }
+
+    byte[] salt = data[..SaltMeret];
+    byte[] nonce = data[SaltMeret..(SaltMeret + NonceMeret)];
+    byte[] tag = data[(SaltMeret + NonceMeret)..headerSize];
+    byte[] ciphertext = data[headerSize..];
+    byte[] key = Rfc2898DeriveBytes.Pbkdf2(jelszo, salt, Iteraciok, HashAlgorithmName.SHA256, 32);
+    byte[] plaintext = new byte[ciphertext.Length];
+
+    try
+    {
+        using var aes = new AesGcm(key, TagMeret);
+        aes.Decrypt(nonce, ciphertext, tag, plaintext);
+        return Encoding.UTF8.GetString(plaintext);
+    }
+    finally
+    {
+        CryptographicOperations.ZeroMemory(key);
+    }
+}
 
 // kulso functions
 
@@ -20,7 +74,7 @@ string Kereses(string fajl_nev)
     // jelszo return 
     Console.WriteLine();
     Console.WriteLine("Melyik felhasználónév?");
-    string f_nev = Console.ReadLine();
+    string f_nev = ReadRequiredLine();
     Console.WriteLine();
 
     // jelszo kereses
@@ -64,7 +118,17 @@ while (true)
     Console.WriteLine("======================================");
     Console.WriteLine();
     Console.WriteLine("Választása:");
-    int valasz = int.Parse(Console.ReadLine());
+    string? menuInput = Console.ReadLine();
+    if (menuInput is null)
+    {
+        break;
+    }
+
+    if (!int.TryParse(menuInput, out int valasz))
+    {
+        Console.WriteLine("Érvénytelen választás.");
+        continue;
+    }
 
     // Menü
 
@@ -80,15 +144,17 @@ while (true)
         Console.WriteLine();
         Console.WriteLine("Mi legyen a tároló neve:");
         string fajl_nev = Console.ReadLine();
-        if (fajl_nev.Contains(".txt"))
+        Console.WriteLine("Mi legyen a tároló jelszava:");
+        string taroloJelszo = Console.ReadLine();
+        if (fajl_nev.Contains(".bin"))
         {
-            File.WriteAllText(fajl_nev, "");
+            EncryptFajlba("\n", taroloJelszo, fajl_nev);
         }
 
         else
         {
-            fajl_nev += ".txt";
-            File.WriteAllText(fajl_nev, "");
+            fajl_nev += ".bin";
+            EncryptFajlba("\n", taroloJelszo, fajl_nev);
         }
         fajl_nevek.Add(fajl_nev);
         Console.WriteLine("Sikeres Rögzítés!");
@@ -223,6 +289,3 @@ while (true)
 
     // menupontok
 }
-
-
-
