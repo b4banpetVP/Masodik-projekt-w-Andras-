@@ -1,4 +1,4 @@
-﻿﻿using System.IO;
+﻿using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -63,8 +63,10 @@ string Kereses(string fajl_nev)
 {
     // felhasznalo nevek felsorolasa
     Console.WriteLine();
+    Console.WriteLine("Kérem a jelszót: ");
+    string keresJelszo = Console.ReadLine();
     Console.WriteLine("Felhasználó nevek:");
-    foreach (string sor in File.ReadLines(fajl_nev))
+    foreach (string sor in DecryptFajlbol(keresJelszo, fajl_nev).Split("\n"))
     {
         string fnev = sor.Split(";")[0];
         Console.WriteLine(fnev);
@@ -74,12 +76,12 @@ string Kereses(string fajl_nev)
     // jelszo return 
     Console.WriteLine();
     Console.WriteLine("Melyik felhasználónév?");
-    string f_nev = ReadRequiredLine();
+    string f_nev = Console.ReadLine();
     Console.WriteLine();
 
     // jelszo kereses
     string jelszo = "";
-    foreach (string sor in File.ReadLines(fajl_nev))
+    foreach (string sor in DecryptFajlbol(keresJelszo, fajl_nev).Split("\n"))
     {
         string fnev = sor.Split(";")[0];
         if (fnev == f_nev)
@@ -138,15 +140,17 @@ while (true)
         Console.WriteLine("Mi legyen a tároló neve:");
         string fajl_nev = Console.ReadLine();
 
+        Console.WriteLine("Kérem a jelszót: ");
+        string letrehozJelszo = Console.ReadLine();
         if (fajl_nev.Contains(".bin"))
         {
-            File.WriteAllText(fajl_nev, "");
+            EncryptFajlba("", letrehozJelszo, fajl_nev);
         }
 
         else
         {
             fajl_nev += ".bin";
-            File.WriteAllText(fajl_nev, "");
+            EncryptFajlba("", letrehozJelszo, fajl_nev);
         }
 
         File.AppendAllText("fajl_nevek.txt", $"{fajl_nev}\n");
@@ -209,14 +213,14 @@ while (true)
 
 
 
-        if (fajl_nev.Contains(".txt"))
+        if (fajl_nev.Contains(".bin"))
         {
             Kereses(fajl_nev);
         }
 
         else
         {
-            fajl_nev += ".txt";
+            fajl_nev += ".bin";
             Kereses(fajl_nev);
         }
 
@@ -243,6 +247,8 @@ while (true)
         // Adatok bekérése
         Console.WriteLine("Melyik tároló?");
         string fajlnev = Console.ReadLine();
+        Console.WriteLine("Kérem a jelszót: ");
+        string hozzaadJelszo = Console.ReadLine();
         Console.WriteLine();
         Console.WriteLine("Mi a fiók neve:");
         string fioknev = Console.ReadLine();
@@ -254,17 +260,17 @@ while (true)
 
         //adat rogzites
         //new Fiok(fioknev,fiokjelszo); 
-        string adatok = $"{fioknev};{fiokjelszo}";
+        string adatok = $"\n{fioknev};{fiokjelszo}";
 
-        if (fajlnev.Contains(".txt"))
+        if (fajlnev.Contains(".bin"))
         {
-            File.AppendAllText(fajlnev, adatok);
+            EncryptFajlba(DecryptFajlbol(hozzaadJelszo, fajlnev)+adatok, hozzaadJelszo, fajlnev);
         }
 
         else
         {
-            fajlnev += ".txt";
-            File.AppendAllText(fajlnev, adatok);
+            fajlnev += ".bin";
+            EncryptFajlba(DecryptFajlbol(hozzaadJelszo, fajlnev)+adatok, hozzaadJelszo, fajlnev);
         }
         //adat rogzites
 
