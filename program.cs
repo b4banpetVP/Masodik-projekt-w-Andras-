@@ -29,14 +29,9 @@ void EncryptFajlba (string input, string jelszo, string eleresiUt) {
     fs.Write(ciphertext, 0, ciphertext.Length);
 }
 
-string DecryptFajlbol(string jelszo, string eleresiUt)
-{
+string DecryptFajlbol(string jelszo, string eleresiUt) {
     byte[] data = File.ReadAllBytes(eleresiUt);
     int headerSize = SaltMeret + NonceMeret + TagMeret;
-    if (data.Length < headerSize)
-    {
-        throw new InvalidDataException("The encrypted file is too short.");
-    }
 
     byte[] salt = data[..SaltMeret];
     byte[] nonce = data[SaltMeret..(SaltMeret + NonceMeret)];
@@ -45,47 +40,49 @@ string DecryptFajlbol(string jelszo, string eleresiUt)
     byte[] key = Rfc2898DeriveBytes.Pbkdf2(jelszo, salt, Iteraciok, HashAlgorithmName.SHA256, 32);
     byte[] plaintext = new byte[ciphertext.Length];
 
-    try
-    {
+    try {
         using var aes = new AesGcm(key, TagMeret);
         aes.Decrypt(nonce, ciphertext, tag, plaintext);
         return Encoding.UTF8.GetString(plaintext);
-    }
-    finally
-    {
+    } finally {
         CryptographicOperations.ZeroMemory(key);
     }
 }
-
 // kulso functions
 
-string Kereses(string fajl_nev)
-{
+string Kereses(string fajl_nev) {
     // felhasznalo nevek felsorolasa
     Console.WriteLine();
     Console.WriteLine("Kérem a jelszót: ");
     string keresJelszo = Console.ReadLine();
     Console.WriteLine("Felhasználó nevek:");
-    foreach (string sor in DecryptFajlbol(keresJelszo, fajl_nev).Split("\n"))
-    {
-        string fnev = sor.Split(";")[0];
-        Console.WriteLine(fnev);
+    int maxFelhHossz = 0;
+
+    List<string> keresValasztasok = new List<string>();
+    foreach (string sor in DecryptFajlbol(keresJelszo, fajl_nev).Split("\n")) {
+        if (sor.Split(";")[0].Length > maxFelhHossz) {
+            maxFelhHossz = sor.Split(";")[0].Length;
+        }
+        keresValasztasok.Append(sor.Split(";")[0]);
+    }
+
+    foreach (string sor in DecryptFajlbol(keresJelszo, fajl_nev).Split("\n")) {
+        try {
+            Console.WriteLine($"{sor.Split(";")[0]}{new string(' ', maxFelhHossz-sor.Split(";")[0].Length+1)}| {new string('*', sor.Split(";")[1].Length)}");
+        } catch {}
     }
     // felhasznalo nevek felsorolasa
-
     // jelszo return 
     Console.WriteLine();
     Console.WriteLine("Melyik felhasználónév?");
+    
     string f_nev = Console.ReadLine();
     Console.WriteLine();
 
-    // jelszo kereses
     string jelszo = "";
-    foreach (string sor in DecryptFajlbol(keresJelszo, fajl_nev).Split("\n"))
-    {
+    foreach (string sor in DecryptFajlbol(keresJelszo, fajl_nev).Split("\n")) {
         string fnev = sor.Split(";")[0];
-        if (fnev == f_nev)
-        {
+        if (fnev == f_nev) {
             jelszo += sor.Split(";")[1];
         }
     }
@@ -152,7 +149,7 @@ while (true)
             fajl_nev += ".bin";
             EncryptFajlba("", letrehozJelszo, fajl_nev);
         }
-
+        //global listaba elsonek filebol iratas
         File.AppendAllText("fajl_nevek.txt", $"{fajl_nev}\n");
         Console.WriteLine("Sikeres Rögzítés!");
     }
