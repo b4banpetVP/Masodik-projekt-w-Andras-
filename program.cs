@@ -4,8 +4,7 @@ using System.Text;
 
 
 //global valtozok
-if (File.Exists("fajl_nevek.txt") == false)
-{
+if (File.Exists("fajl_nevek.txt") == false) {
     File.WriteAllText("fajl_nevek.txt", "");
 }
 List<string> fajl_nevek = new List<string>(File.ReadAllLines("fajl_nevek.txt"));
@@ -21,8 +20,7 @@ const int NonceMeret = 12;
 const int TagMeret = 16;
 const int Iteraciok = 600_000;
 
-void EncryptFajlba(string input, string jelszo, string eleresiUt)
-{
+void EncryptFajlba(string input, string jelszo, string eleresiUt) {
     byte[] salt = RandomNumberGenerator.GetBytes(SaltMeret);
     byte[] nonce = RandomNumberGenerator.GetBytes(NonceMeret);
     byte[] key = Rfc2898DeriveBytes.Pbkdf2(jelszo, salt, Iteraciok, HashAlgorithmName.SHA256, 32);
@@ -41,8 +39,7 @@ void EncryptFajlba(string input, string jelszo, string eleresiUt)
     fs.Write(ciphertext, 0, ciphertext.Length);
 }
 
-string DecryptFajlbol(string jelszo, string eleresiUt)
-{
+string DecryptFajlbol(string jelszo, string eleresiUt) {
     byte[] data = File.ReadAllBytes(eleresiUt);
     int headerSize = SaltMeret + NonceMeret + TagMeret;
 
@@ -53,35 +50,30 @@ string DecryptFajlbol(string jelszo, string eleresiUt)
     byte[] key = Rfc2898DeriveBytes.Pbkdf2(jelszo, salt, Iteraciok, HashAlgorithmName.SHA256, 32);
     byte[] plaintext = new byte[ciphertext.Length];
 
-    try
-    {
+    try {
         using var aes = new AesGcm(key, TagMeret);
         aes.Decrypt(nonce, ciphertext, tag, plaintext);
         return Encoding.UTF8.GetString(plaintext);
-    }
-    finally
-    {
+    } finally {
         CryptographicOperations.ZeroMemory(key);
     }
 }
-// kulso functions
 
-string Kereses(string fajl_nev)
-{
-    // felhasznalo nevek felsorolasa
-    Console.WriteLine();
-    Console.WriteLine("Kérem a jelszót: ");
-    string keresJelszo = Console.ReadLine();
+// kulso functions
+string valaszottTaroloSorszamStrTemp = "";
+int valaszottTaroloSorszam = 0;
+string valaszottTaroloJelszo = "";
+
+string Kereses(string fajl_nev) {
+    string keresJelszo = valaszottTaroloJelszo;
     Console.WriteLine();
     Console.WriteLine("Felhasználó nevek:");
     Console.WriteLine();
     int maxFelhHossz = 0;
 
     List<string> keresValasztasok = new List<string>();
-    foreach (string sor in DecryptFajlbol(keresJelszo, fajl_nev).Split("\n"))
-    {
-        if (sor.Split(";")[0].Length > maxFelhHossz)
-        {
+    foreach (string sor in DecryptFajlbol(keresJelszo, fajl_nev).Split("\n")) {
+        if (sor.Split(";")[0].Length > maxFelhHossz) {
             maxFelhHossz = sor.Split(";")[0].Length;
         }
         keresValasztasok.Append(sor.Split(";")[0]);
@@ -89,8 +81,7 @@ string Kereses(string fajl_nev)
 
     foreach (string sor in DecryptFajlbol(keresJelszo, fajl_nev).Split("\n"))
     {
-        try
-        {
+        try {
             Console.WriteLine($"{sor.Split(";")[0]}{new string(' ', maxFelhHossz - sor.Split(";")[0].Length + 1)}| {new string('*', sor.Split(";")[1].Length)}");
         }
         catch { }
@@ -104,239 +95,143 @@ string Kereses(string fajl_nev)
     Console.WriteLine();
 
     string jelszo = "";
-    foreach (string sor in DecryptFajlbol(keresJelszo, fajl_nev).Split("\n"))
-    {
+    foreach (string sor in DecryptFajlbol(keresJelszo, fajl_nev).Split("\n")) {
         string fnev = sor.Split(";")[0];
-        if (fnev == f_nev)
-        {
+        if (fnev == f_nev) {
             jelszo += sor.Split(";")[1];
         }
     }
 
     // jelszo kereses
-
-    Console.Write("A jelszava:");
+    Console.Clear();
+    Console.Write("A jelszava: ");
     Console.WriteLine(jelszo);
     return "";
 
     // jelszo return 
 }
 
-// kulso funcs 
+while (true) {
+    try {
+        // Menü
+        Console.WriteLine();
+        Console.WriteLine("======================================");
+        Console.WriteLine();
+        Console.WriteLine(" (1) Tároló kiválasztása ");
+        Console.WriteLine();
+        Console.WriteLine(" (2) Tároló létrehozása ");
+        Console.WriteLine();
+        Console.WriteLine(" (3) A kiválasztott tároló törlése ");
+        Console.WriteLine();
+        Console.WriteLine(" (4) Tárolóban keresés ");
+        Console.WriteLine();
+        Console.WriteLine(" (5) Tárolóhoz adás ");
+        Console.WriteLine();
+        Console.WriteLine("======================================");
+        Console.WriteLine();
+        Console.WriteLine("Választása:");
+        string input = Console.ReadLine();
+        //menu
 
-// funtions 
-
-
-
-while (true)
-{
-    // Menü
-    Console.WriteLine();
-    Console.WriteLine("======================================");
-    Console.WriteLine();
-    Console.WriteLine(" (1) Tároló létrehozása ");
-    Console.WriteLine();
-    Console.WriteLine(" (2) Tároló törlése ");
-    Console.WriteLine();
-    Console.WriteLine(" (3) Tárolóban keresés ");
-    Console.WriteLine();
-    Console.WriteLine(" (4) Tárolóhoz adás ");
-    Console.WriteLine();
-    Console.WriteLine("======================================");
-    Console.WriteLine();
-    Console.WriteLine("Választása:");
-    string input = Console.ReadLine();
-    //menu
-
-    //sorszamozo
-    Dictionary<string, int> tarolok = new Dictionary<string, int>();
-    Dictionary<int, string> tarolokinv = new Dictionary<int, string>();
-    int sorszam = 0;
-    foreach (string sor in File.ReadLines("fajl_nevek.txt"))
-    {
-        sorszam += 1;
-        tarolok.Add(sor, sorszam);
-        tarolokinv.Add(sorszam, sor);
-    }
-    //sorszamozo
-
-
-    //input ellenorzes
-    if (int.TryParse(input, out int valasz ))
-    {
-
-        // menupontok
-        if (valasz == 1)
-        {
-            Console.WriteLine();
-            Console.WriteLine("Mi legyen a tároló neve:");
-            string fajl_nev = Console.ReadLine();
-
-            Console.WriteLine("Kérem a jelszót: ");
-            string letrehozJelszo = Console.ReadLine();
-            if (fajl_nev.Contains(".bin"))
-            {
-                EncryptFajlba("", letrehozJelszo, fajl_nev);
-            }
-
-            else
-            {
-                fajl_nev += ".bin";
-                EncryptFajlba("", letrehozJelszo, fajl_nev);
-            }
-            File.AppendAllText("fajl_nevek.txt", $"{fajl_nev}\n");
-            Console.WriteLine("Sikeres Rögzítés!");
+        //sorszamozo
+        Dictionary<string, int> tarolok = new Dictionary<string, int>();
+        Dictionary<int, string> tarolokinv = new Dictionary<int, string>();
+        int sorszam = 0;
+        foreach (string sor in File.ReadLines("fajl_nevek.txt")) {
+            sorszam += 1;
+            tarolok.Add(sor, sorszam);
+            tarolokinv.Add(sorszam, sor);
         }
+        //sorszamozo
 
-        if (valasz == 2)
-        {
-            Console.WriteLine();
-            Console.WriteLine("A létező tárolók:");
-            Console.WriteLine();
-
-            //sorszam rendszer
-            foreach (string sor in File.ReadLines("fajl_nevek.txt"))
-            {
-                tarolok.TryGetValue(sor, out int taroloszam);
-                Console.WriteLine($"{taroloszam}. {sor}");
-            }
-
-            Console.WriteLine();
-            // tarolok kiiratasa
-
-            // Adatok bekérése
-            Console.WriteLine("Hanyadik tároló?");
-            string hanyadik = Console.ReadLine();
-
-            if (int.TryParse(hanyadik, out int value))
-            {
-                tarolokinv.TryGetValue(value, out string fajlnev);
-                File.Delete(fajlnev);
-                fajl_nevek.Remove(fajlnev);
-
-                File.WriteAllLines("fajl_nevek.txt", fajl_nevek);
+        //input ellenorzes
+        if (int.TryParse(input, out int valasz )) {
+            // menupontok
+            if (valasz == 1) {
+                // tarolok kiiratasa
                 Console.WriteLine();
-                Console.WriteLine("Sikeres Törlés!");
+                Console.WriteLine("A létező tárolók:");
                 Console.WriteLine();
-            }
-            else
-            {
-                Console.WriteLine("\n Szöveget nem adhatsz meg!");
-            }
 
+                //sorszam rendszer
+                foreach (string sor in File.ReadLines("fajl_nevek.txt")) {   
+                    tarolok.TryGetValue(sor, out int taroloszam);
+                    Console.WriteLine($"{taroloszam}. {sor}");
+                }
 
-        }
+                Console.WriteLine();
+                // tarolok kiiratasa
 
-
-        if (valasz == 3)
-        {
-            // tarolo valasztas
-            Console.WriteLine();
-            Console.WriteLine("A létező tárolók");
-            Console.WriteLine();
-
-            //sorszam rendszer
-            foreach (string sor in File.ReadLines("fajl_nevek.txt"))
-            {
-                tarolok.TryGetValue(sor, out int taroloszam);
-                Console.WriteLine($"{taroloszam}. {sor}");
+                // Adatok bekérése
+                Console.WriteLine("Hanyadik tároló?");
+                valaszottTaroloSorszamStrTemp = Console.ReadLine();
+                if (!int.TryParse(valaszottTaroloSorszamStrTemp, out int value)) {
+                    Console.WriteLine("\n Szöveget nem adhatsz meg!");
+                } else {
+                    valaszottTaroloSorszam = value;
+                    Console.WriteLine("Kérem a jelszót: [FIGYELEM - Ebbe a mezőbe írt karakterek NEM lesznek elrejtve.]");
+                    valaszottTaroloJelszo = Console.ReadLine();
+                }
             }
 
-            Console.WriteLine();
-            // tarolok kiiratasa
+            if (valasz == 2) {
+                Console.WriteLine();
+                Console.WriteLine("Mi legyen a tároló neve:");
+                string fajl_nev = Console.ReadLine();
 
-            // Adatok bekérése
-            Console.WriteLine("Hanyadik tároló?");
-            string hanyadik = Console.ReadLine();
+                Console.WriteLine("Kérem a jelszót: [FIGYELEM - Ebbe a mezőbe írt karakterek NEM lesznek elrejtve.]");
+                string letrehozJelszo = Console.ReadLine();
+                if (fajl_nev.Contains(".bin")) {
+                    EncryptFajlba("", letrehozJelszo, fajl_nev);
+                } else {
+                    fajl_nev += ".bin";
+                    EncryptFajlba("", letrehozJelszo, fajl_nev);
+                }
+                File.AppendAllText("fajl_nevek.txt", $"{fajl_nev}\n");
+                Console.Clear();
+                Console.WriteLine("Sikeres Rögzítés!");
+            }
 
-            if (int.TryParse(hanyadik, out int value))
-            {
-                tarolokinv.TryGetValue(value, out string fajlnev);
+            if (valasz == 3) {
+                Console.WriteLine("FIGYELEM - Ez a művelet visszaállíthatatlan adatvesztést okozhat.\nA törlés megerősítéséhez írja be hogy TORLES, vagy a visszalépéshez akármi mást.");
+                if (Console.ReadLine() == "TORLES") {
+                    tarolokinv.TryGetValue(valaszottTaroloSorszam, out string fajlnev);
+                    File.Delete(fajlnev);
+                    fajl_nevek.Remove(fajlnev);
+                    File.WriteAllLines("fajl_nevek.txt", fajl_nevek);
+                    Console.WriteLine();
+                    Console.Clear();
+                    Console.WriteLine("Sikeres Törlés!");
+                    Console.WriteLine();
+                }
+            }
+
+            if (valasz == 4) {
+                tarolokinv.TryGetValue(valaszottTaroloSorszam, out string fajlnev);
                 Kereses(fajlnev);
-                
-            }
-            else
-            {
-                Console.WriteLine("\n Szöveget nem adhatsz meg!");
             }
 
-            
-
-        }
-
-
-        if (valasz == 4)
-        {
-            // tarolok kiiratasa
-            Console.WriteLine();
-            Console.WriteLine("A létező tárolók:");
-            Console.WriteLine();
-
-        //sorszam rendszer
-            foreach (string sor in File.ReadLines("fajl_nevek.txt"))
-            {   
-                tarolok.TryGetValue(sor, out int taroloszam);
-                Console.WriteLine($"{taroloszam}. {sor}");
-            }
-
-            Console.WriteLine();
-            // tarolok kiiratasa
-
-            // Adatok bekérése
-            Console.WriteLine("Hanyadik tároló?");
-            string hanyadik = Console.ReadLine();
-
-            if (int.TryParse(hanyadik, out int value))
-            { tarolokinv.TryGetValue(value, out string fajlnev);
-       //sorszam rendszer
-
-                Console.WriteLine("Kérem a jelszót: ");
-                string hozzaadJelszo = Console.ReadLine();
-                Console.WriteLine();
+            if (valasz == 5) {
+                tarolokinv.TryGetValue(valaszottTaroloSorszam, out string fajlnev);
                 Console.WriteLine("Mi a fiók neve:");
                 string fioknev = Console.ReadLine();
                 Console.WriteLine();
                 Console.WriteLine("Mi a fiók jelszava:");
                 string fiokjelszo = Console.ReadLine();
                 Console.WriteLine();
-            // Adatok bekérése
-
                 //adat rogzites
                 string adatok = $"\n{fioknev};{fiokjelszo}";
-                EncryptFajlba(DecryptFajlbol(hozzaadJelszo, fajlnev) + adatok, hozzaadJelszo, fajlnev);
+                EncryptFajlba(DecryptFajlbol(valaszottTaroloJelszo, fajlnev) + adatok, valaszottTaroloJelszo, fajlnev);
                 //adat rogzites
-
+                Console.Clear();
                 Console.WriteLine("Sikeres rögzítés!");
             }
-            else
-            {
-                Console.WriteLine("\n Szöveget nem adhatsz meg!");
-
-            }
-            
+        } else {
+            Console.Clear();
+            Console.WriteLine("\n Szöveget nem adhatsz meg!");
         }
-
-
-
-
-
+    } catch (CryptographicException) {
+        Console.Clear();
+        Console.WriteLine("\nHibás jelszó vagy sérült tároló!");
     }
-    else
-    {
-        Console.WriteLine("\n Szöveget nem adhatsz meg!");
-        
-    }
-    //input ellenorzes
-    
-
-    
-      // Menü
-
-
-
-        
-
-
-
-    // menupontok
 }
