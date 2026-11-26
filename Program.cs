@@ -3,12 +3,12 @@ using System.Security.Cryptography;
 using System.Text;
 
 // Tároló lista fájl létezésének biztosítása
-if (File.Exists("fajl_nevek.txt") == false) {
-    File.WriteAllText("fajl_nevek.txt", "");
+if (File.Exists("tarolok.dat") == false) {
+    File.WriteAllText("tarolok.dat", "");
 }
 List<string> fajl_nevek;
 
-// CSV Struktúra: Platform;Felhasználónév;Jelszó;Hozzáadás dátuma
+// CSV Struktúra: Platform | Felhasználónév | Jelszó | Hozzáadás dátuma
 // Jegyzet: Valójában nem pontos vesszőt használ separatornak, hanem a(z) \x1F egység elválasztó karaktert
 
 // Titkosítás paraméterei
@@ -72,32 +72,40 @@ string Kereses(string fajl_nev) {
 
     List<string> keresValasztasok = [];
     foreach (string sor in DecryptFajlbol(keresJelszo, fajl_nev).Split("\n")) {
-        if (sor.Split(";")[0].Length > maxFelhHossz) {
-            maxFelhHossz = sor.Split(";")[0].Length;
+        if (sor.Split(CsvSeparator)[0].Length > maxFelhHossz) {
+            maxFelhHossz = sor.Split(CsvSeparator)[0].Length;
         }
-        keresValasztasok.Append(sor.Split(";")[0]);
+        keresValasztasok.Add(sor.Split(CsvSeparator)[0]);
     }
 
-    foreach (string sor in DecryptFajlbol(keresJelszo, fajl_nev).Split("\n"))
-    {
+    Dictionary<string, int> fiokok = [];
+    Dictionary<int, string> fiokokinv = [];
+    int sorszam = 0;
+    foreach (string sor in keresValasztasok) {
+        sorszam += 1;
+        fiokok.Add(sor, sorszam);
+        fiokokinv.Add(sorszam, sor);
+    }
+
+    sorszam = 0;
+    foreach (string sor in DecryptFajlbol(keresJelszo, fajl_nev).Split("\n")) {
         try {
-            Console.WriteLine($"{sor.Split(";")[0]}{new string(' ', maxFelhHossz - sor.Split(";")[0].Length + 1)}| {new string('*', sor.Split(";")[1].Length)}");
-        }
-        catch { }
+            sorszam += 1;
+            Console.WriteLine($"{sorszam}. {sor.Split(CsvSeparator)[0]}{new string(' ', maxFelhHossz - sor.Split(CsvSeparator)[0].Length + 1)}| {new string('*', sor.Split(CsvSeparator)[1].Length)}");
+        } catch {}
     }
     // felhasznalo nevek felsorolasa
     // jelszo return 
     Console.WriteLine();
-    Console.WriteLine("Melyik felhasználónév?");
-
-    string f_nev = Console.ReadLine();
-    Console.WriteLine();
+    Console.WriteLine("Adja meg a felhasználónév sorszámát");
+    Console.Write("> ");
+    fiokokinv.TryGetValue(int.Parse(Console.ReadLine()), out string valasztottFelhnev);
 
     string jelszo = "";
     foreach (string sor in DecryptFajlbol(keresJelszo, fajl_nev).Split("\n")) {
-        string fnev = sor.Split(";")[0];
-        if (fnev == f_nev) {
-            jelszo += sor.Split(";")[1];
+        string fnev = sor.Split(CsvSeparator)[0];
+        if (fnev == valasztottFelhnev) {
+            jelszo += sor.Split(CsvSeparator)[1];
         }
     }
 
@@ -111,7 +119,7 @@ string Kereses(string fajl_nev) {
 }
 
 while (true) {
-    fajl_nevek = new List<string>(File.ReadAllLines("fajl_nevek.txt"));
+    fajl_nevek = new List<string>(File.ReadAllText("tarolok.dat").Split(CsvSeparator));
     try {
         // Menü
         Console.WriteLine();
@@ -138,7 +146,7 @@ while (true) {
         Dictionary<string, int> tarolok = [];
         Dictionary<int, string> tarolokinv = [];
         int sorszam = 0;
-        foreach (string sor in File.ReadLines("fajl_nevek.txt")) {
+        foreach (string sor in File.ReadAllText("tarolok.dat").Split(CsvSeparator)) {
             sorszam += 1;
             tarolok.Add(sor, sorszam);
             tarolokinv.Add(sorszam, sor);
@@ -153,7 +161,7 @@ while (true) {
                     Console.WriteLine("\nA létező tárolók:\n");
 
                     // Sorszám értelmezése és tárolók listázása
-                    foreach (string sor in File.ReadLines("fajl_nevek.txt")) {   
+                    foreach (string sor in File.ReadAllText("tarolok.dat").Split(CsvSeparator)) {   
                         tarolok.TryGetValue(sor, out int taroloszam);
                         Console.WriteLine($"{taroloszam}. {sor}");
                     }
@@ -199,7 +207,7 @@ while (true) {
                     Console.Write("> ");
                     string letrehozJelszo = Console.ReadLine() ?? "";
                     EncryptFajlba("", letrehozJelszo, fajl_nev);
-                    File.AppendAllText("fajl_nevek.txt", $"{fajl_nev}\n");
+                    File.AppendAllText("tarolok.dat", $"{fajl_nev}{CsvSeparator}");
                     Console.Clear();
                     Console.WriteLine("Sikeres rögzítés");
                 break;
@@ -212,7 +220,7 @@ while (true) {
                         tarolokinv.TryGetValue(valaszottTaroloSorszam, out string torlesFajlnev);
                         File.Delete(torlesFajlnev);
                         fajl_nevek.Remove(torlesFajlnev);
-                        File.WriteAllLines("fajl_nevek.txt", fajl_nevek);
+                        File.WriteAllText("tarolok.dat", Join(CsvSeparator));
                         Console.Clear();
                         Console.WriteLine("Sikeres törlés");
                     }

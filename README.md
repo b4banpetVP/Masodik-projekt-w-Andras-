@@ -111,3 +111,6 @@ Sikeres rögzítés!
 ```
 
 ---
+
+# Továbbfejlesztési lehetőségek
+ - Tároló mesterjelszó helyett ujjlenyomatérzékelő használata
